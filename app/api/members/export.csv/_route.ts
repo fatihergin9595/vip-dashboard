@@ -1,5 +1,5 @@
 // app/api/members/[id]/export/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { players } from "@/db/schema/players";
@@ -16,10 +16,9 @@ const LEVELS: { id: LevelId; name: string; min: number; max: number | null }[] =
     { id: "diamond", name: "Elmas", min: 2_000_000, max: null },
   ];
 
-function detectLevel(deposit90d: number | null): {
-  id: LevelId | null;
-  name: string | null;
-} {
+function detectLevel(
+  deposit90d: number | null
+): { id: LevelId | null; name: string | null } {
   if (!deposit90d || deposit90d <= 0) return { id: null, name: null };
   const lvl = LEVELS.find(
     (l) =>
@@ -52,11 +51,11 @@ function csvEscape(value: string): string {
 }
 
 export async function GET(
-  _req: Request,
-  context: { params: { id: string } }
+  _req: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const rawId = context.params?.id;
+    const rawId = params?.id;
     const memberId = Number(rawId);
 
     if (!rawId || !Number.isInteger(memberId) || memberId <= 0) {
@@ -101,11 +100,11 @@ export async function GET(
     const lossSummaryResult = await db.execute(
       sql`
         SELECT
-          COALESCE(SUM(l.loss), 0)          AS "totalLoss",
-          COALESCE(SUM(l.added_cash), 0)    AS "totalBonusCash",
+          COALESCE(SUM(l.loss), 0)           AS "totalLoss",
+          COALESCE(SUM(l.added_cash), 0)     AS "totalBonusCash",
           COALESCE(SUM(l.added_freespin), 0) AS "totalBonusFreespin",
           COALESCE(SUM(l.added_freebet), 0)  AS "totalBonusFreebet",
-          COUNT(*)                          AS "count"
+          COUNT(*)                           AS "count"
         FROM public.loss_bonus_requests AS l
         WHERE l.player_id = ${memberId}
           AND l.status = 'APPROVED'

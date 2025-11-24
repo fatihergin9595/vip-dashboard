@@ -1,11 +1,12 @@
 // app/api/dashboard/export.xlsx/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { players } from "@/db/schema/players";
 import ExcelJS from "exceljs";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const LEVELS = [
   { id: "iron", name: "Demir", min: 10_000, max: 49_999 },
@@ -27,19 +28,22 @@ function csvEscape(value: string | number | null | undefined): string {
   return str;
 }
 
-export async function GET() {
+export async function GET(
+  _req: NextRequest,
+  _context: { params: Promise<{}> }
+) {
   try {
     const minVipDeposit = LEVELS[0].min * DEPOSIT_SCALE;
 
     // 1. ÖZET VERİLER
-    
+
     // Toplam VIP Üye
     const totalVipRes = await db.execute(
       sql`SELECT COUNT(*) as "count" FROM ${players} WHERE ${players.deposit90d} >= ${minVipDeposit}`
     );
     const totalVip = Number(totalVipRes.rows[0]?.count ?? 0);
 
-    // Yeni VIP Üyeler
+    // Yeni VIP Üyeler (15 gün)
     const newVipRes = await db.execute(
       sql`
         SELECT COUNT(*) as "count" 
@@ -50,11 +54,12 @@ export async function GET() {
     );
     const newVip = Number(newVipRes.rows[0]?.count ?? 0);
 
-    // Toplam Yatırım
+    // Toplam Yatırım (son 90 gün)
     const totalDepositRes = await db.execute(
       sql`SELECT COALESCE(SUM(${players.deposit90d}), 0) as "sum" FROM ${players} WHERE ${players.deposit90d} >= ${minVipDeposit}`
     );
-    const totalDeposit = Number(totalDepositRes.rows[0]?.sum ?? 0) / DEPOSIT_SCALE;
+    const totalDeposit =
+      Number(totalDepositRes.rows[0]?.sum ?? 0) / DEPOSIT_SCALE;
 
     // Toplam Loss Bonus (Sadece Nakit - added_cash)
     const totalLossRes = await db.execute(
@@ -63,11 +68,18 @@ export async function GET() {
     const totalLoss = Number(totalLossRes.rows[0]?.sum ?? 0);
 
     // 2. SEVİYE VERİLERİ
-    const levelStats = [];
+    const levelStats: {
+      name: string;
+      range: string;
+      count: number;
+      deposit: number;
+      avg: number;
+    }[] = [];
+
     for (const lvl of LEVELS) {
       const min = lvl.min * DEPOSIT_SCALE;
       const max = lvl.max ? lvl.max * DEPOSIT_SCALE : null;
-      
+
       let query;
       if (max) {
         query = sql`
@@ -93,12 +105,21 @@ export async function GET() {
       const deposit = Number(row.totalDeposit ?? 0) / DEPOSIT_SCALE;
       const avg = count > 0 ? Math.round(deposit / count) : 0;
 
+      let range: string;
+      if (max != null) {
+        const minStr = lvl.min.toLocaleString("tr-TR");
+        const maxStr = (lvl.max ?? 0).toLocaleString("tr-TR");
+        range = `${minStr} - ${maxStr}`;
+      } else {
+        range = `>= ${lvl.min.toLocaleString("tr-TR")}`;
+      }
+
       levelStats.push({
         name: lvl.name,
-        range: max ? `${lvl.min.toLocaleString("tr-TR")} - ${lvl.max.toLocaleString("tr-TR")}` : `>= ${lvl.min.toLocaleString("tr-TR")}`,
+        range,
         count,
         deposit,
-        avg
+        avg,
       });
     }
 
@@ -107,28 +128,31 @@ export async function GET() {
     const worksheet = workbook.addWorksheet("Dashboard Raporu");
 
     worksheet.columns = [
-      { width: 30 }, 
-      { width: 30 }, 
-      { width: 20 }, 
-      { width: 25 }, 
-      { width: 25 }, 
+      { width: 30 },
+      { width: 30 },
+      { width: 20 },
+      { width: 25 },
+      { width: 25 },
     ];
 
     const titleRow = worksheet.addRow(["ÖZET RAPORU"]);
     titleRow.font = { bold: true, size: 14 };
-    
+
     worksheet.addRow(["Rapor Tarihi", new Date().toLocaleDateString("tr-TR")]);
     worksheet.addRow([]);
 
     const summaryHeader = worksheet.addRow(["Metrik", "Değer"]);
     summaryHeader.font = { bold: true };
-    
+
     worksheet.addRow(["Toplam VIP Üye", totalVip]);
     worksheet.addRow(["Yeni VIP Üyeler (15 Gün)", newVip]);
-    worksheet.addRow(["Son 90 Gün Toplam Yatırım", totalDeposit]).getCell(2).numFmt = '#,##0 "₺"';
-    worksheet.addRow(["Toplam Dağıtılan Loss Bonus (Nakit)", totalLoss]).getCell(2).numFmt = '#,##0 "₺"';
-    // Terfi Ödülü satırı kaldırıldı.
-    
+    worksheet
+      .addRow(["Son 90 Gün Toplam Yatırım", totalDeposit])
+      .getCell(2).numFmt = '#,##0 "₺"';
+    worksheet
+      .addRow(["Toplam Dağıtılan Loss Bonus (Nakit)", totalLoss])
+      .getCell(2).numFmt = '#,##0 "₺"';
+
     worksheet.addRow([]);
     worksheet.addRow([]);
 
@@ -136,50 +160,52 @@ export async function GET() {
     levelTitleRow.font = { bold: true, size: 14 };
 
     const tableHeader = worksheet.addRow([
-      "Seviye", 
-      "Yatırım Aralığı (TL)", 
-      "Üye Sayısı", 
-      "Toplam Yatırım (TL)", 
-      "Üye Başı Ortalama (TL)"
+      "Seviye",
+      "Yatırım Aralığı (TL)",
+      "Üye Sayısı",
+      "Toplam Yatırım (TL)",
+      "Üye Başı Ortalama (TL)",
     ]);
-    
-    tableHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+    tableHeader.font = { bold: true, color: { argb: "FFFFFFFF" } };
     tableHeader.eachCell((cell) => {
       cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF2E7D32' }
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF2E7D32" },
       };
     });
 
-    levelStats.forEach(stat => {
+    levelStats.forEach((stat) => {
       const row = worksheet.addRow([
         stat.name,
         stat.range,
         stat.count,
         stat.deposit,
-        stat.avg
+        stat.avg,
       ]);
       row.getCell(4).numFmt = '#,##0 "₺"';
       row.getCell(5).numFmt = '#,##0 "₺"';
     });
 
-    const buffer = await workbook.xlsx.writeBuffer();
-    const filename = `vip-dashboard-raporu-${new Date().toISOString().slice(0,10)}.xlsx`;
+    const buffer = (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
+    const filename = `vip-dashboard-raporu-${new Date()
+      .toISOString()
+      .slice(0, 10)}.xlsx`;
 
     return new NextResponse(buffer, {
       status: 200,
       headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
-
   } catch (err: any) {
     console.error("dashboard export error", err);
     return NextResponse.json(
       { ok: false, message: err.message ?? "Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
