@@ -1,0 +1,14 @@
+/* 1. satır MUTLAKA bu olacak */
+@import "tailwindcss";
+
+/* --- senin ekstra stillerin --- */
+:root {
+  --background: #020617; /* slate-950 tarzı koyu */
+  --foreground: #e5e7eb; /* slate-200 */
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
