@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { players } from "@/db/schema/players";
-import ExcelJS from "exceljs";
+// ⛔ BUNU SİL: import ExcelJS from "exceljs";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -33,10 +33,12 @@ export async function GET(
   _context: { params: Promise<{}> }
 ) {
   try {
+    // 🔑 ExcelJS sadece burada, server runtime’da import ediliyor
+    const ExcelJS = (await import("exceljs")).default;
+
     const minVipDeposit = LEVELS[0].min * DEPOSIT_SCALE;
 
-    // 1. ÖZET VERİLER
-
+    // ... BURADAN SONRASI senin mevcut logiğinle aynı ...
     // Toplam VIP Üye
     const totalVipRes = await db.execute(
       sql`SELECT COUNT(*) as "count" FROM ${players} WHERE ${players.deposit90d} >= ${minVipDeposit}`
@@ -61,13 +63,12 @@ export async function GET(
     const totalDeposit =
       Number(totalDepositRes.rows[0]?.sum ?? 0) / DEPOSIT_SCALE;
 
-    // Toplam Loss Bonus (Sadece Nakit - added_cash)
+    // Toplam Loss Bonus (Nakit)
     const totalLossRes = await db.execute(
       sql`SELECT COALESCE(SUM(added_cash), 0) as "sum" FROM public.loss_bonus_requests WHERE status = 'APPROVED'`
     );
     const totalLoss = Number(totalLossRes.rows[0]?.sum ?? 0);
 
-    // 2. SEVİYE VERİLERİ
     const levelStats: {
       name: string;
       range: string;
@@ -123,7 +124,6 @@ export async function GET(
       });
     }
 
-    // 3. EXCEL OLUŞTUR
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Dashboard Raporu");
 
