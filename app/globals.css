@@ -1,5 +1,8 @@
-/* 1. satır MUTLAKA bu olacak */
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* BURADAN SONRA kendi global css’lerin */
 
 /* --- senin ekstra stillerin --- */
 :root {
