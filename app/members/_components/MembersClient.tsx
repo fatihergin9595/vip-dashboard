@@ -42,10 +42,13 @@ type ApiResponse = {
   items: VipMember[];
 };
 
-type SortOption = "deposit_desc" | "deposit_asc" | "created_desc" | "created_asc" 
+// Kayıt tarihi (created) kaldırıldı, username eklendi
+type SortOption = "deposit_desc" | "deposit_asc" 
                 | "loss_total_desc" | "loss_total_asc" 
                 | "bonus_cash_desc" | "bonus_cash_asc" 
-                | "loss_count_desc" | "loss_count_asc";
+                | "loss_count_desc" | "loss_count_asc"
+                | "username_asc" | "username_desc";
+
 type QuickFilter = "none" | "new" | "dropping" | "near_next_level";
 
 const VIP_LEVEL_OPTIONS = [
@@ -65,6 +68,7 @@ const QUICK_FILTER_OPTIONS: { value: QuickFilter; label: string }[] = [
   { value: "near_next_level", label: "Seviye Atlamaya Yakın" },
 ];
 
+// Sıralama seçenekleri güncellendi
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "deposit_desc", label: "Yatırım (Önce Yüksek)" },
   { value: "deposit_asc", label: "Yatırım (Önce Düşük)" },
@@ -74,8 +78,8 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "bonus_cash_asc", label: "Nakit Bonus (Önce Düşük)" },
   { value: "loss_count_desc", label: "Talep Sayısı (Önce Yüksek)" },
   { value: "loss_count_asc", label: "Talep Sayısı (Önce Düşük)" },
-  { value: "created_desc", label: "Kayıt Tarihi (Önce Yeni)" },
-  { value: "created_asc", label: "Kayıt Tarihi (Önce Eski)" },
+  { value: "username_asc", label: "Kullanıcı Adı (A-Z)" },
+  { value: "username_desc", label: "Kullanıcı Adı (Z-A)" },
 ];
 
 const PAGE_SIZE = 50;
@@ -109,11 +113,11 @@ const Icons = {
   )
 };
 
-// --- VIP İKONLARI (DÜZELTİLMİŞ) ---
+// --- VIP İKONLARI ---
 function getVipIcon(levelId?: string | null) {
   if (!levelId) return null;
   const props = {
-    width: 18, // İkon boyutunu bir tık büyüttüm net görünsün diye
+    width: 18,
     height: 18,
     viewBox: "0 0 48 48", 
     className: "w-[18px] h-[18px] mr-1.5 shrink-0",
@@ -127,19 +131,10 @@ function getVipIcon(levelId?: string | null) {
       return <svg {...props} viewBox="0 0 24 24" className={`${props.className} text-amber-600`}><path fillRule="evenodd" d="M2.5 3C2.5 2.44772 2.94772 2 3.5 2H20.5C21.0523 2 21.5 2.44772 21.5 3C21.5 3.55228 21.0523 4 20.5 4H20V16C20 16.323 19.844 16.626 19.5812 16.8137L12.5812 21.8137C12.2335 22.0621 11.7665 22.0621 11.4188 21.8137L4.41876 16.8137C4.15597 16.626 4 16.323 4 16V4H3.5C2.94772 4 2.5 3.55228 2.5 3ZM12 6C12.3393 6 12.6555 6.1721 12.8398 6.45709L13.9984 8.24935L16.061 8.79748C16.389 8.88463 16.6504 9.13217 16.7553 9.45492C16.8601 9.77766 16.7942 10.1316 16.5801 10.3948L15.2336 12.0507L15.3496 14.1817C15.3681 14.5205 15.2134 14.8456 14.9389 15.0451C14.6644 15.2446 14.3074 15.2912 13.9908 15.1689L12 14.4L10.0091 15.1689C9.69256 15.2912 9.33559 15.2446 9.06105 15.0451C8.78651 14.8456 8.63186 14.5205 8.65032 14.1817L8.76639 12.0507L7.4199 10.3948C7.2058 10.1316 7.13983 9.77766 7.2447 9.45492C7.34956 9.13217 7.61095 8.88463 7.93892 8.79748L10.0015 8.24935L11.1602 6.45709C11.3444 6.1721 11.6606 6 12 6Z" clipRule="evenodd"></path></svg>;
     case "silver":
       return <svg {...props} viewBox="0 0 64 64" stroke="#d9d7d7" strokeWidth="0.5" fill="#1A61B0" className={`${props.className}`}><path d="M48.9,24.5635A1,1,0,0,0,48,24H37.58L45.9038,6.4277A.9994.9994,0,0,0,45,5H29a1,1,0,0,0-.9126.5908l-13,29A1,1,0,0,0,16,36h9.7592L21.0229,57.7871a1,1,0,0,0,1.7627.832l26-33A1.0013,1.0013,0,0,0,48.9,24.5635Z"></path></svg>;
-    
-    case "gold":
-
-      return (
-
-        <svg {...props} viewBox="0 0 500 500" className={`${props.className} text-yellow-300`}>
-
-          <path fill="#efe047" fillRule="evenodd" d="M492.926 373.652l-29.862-56.448c-3.374-6.38-9.72-10.211-16.467-10.211-1.112 0-2.236.104-3.358.318l-58.772 11.211c-7.032 1.34-12.746 6.762-14.753 14.006l-18.202 65.62c-1.838 6.627-.296 13.787 4.077 18.922 3.612 4.242 8.73 6.603 14.03 6.603 1.115 0 2.236-.104 3.354-.316l106.837-20.379c5.998-1.144 11.102-5.278 13.707-11.096C496.118 386.06 495.899 379.271 492.926 373.652zM369.618 403.749l18.201-65.619 58.772-11.211 29.863 56.451L369.618 403.749zM101.114 175.552l166.149 134.811c7.635 6.071 12.772 11.493 33.646 7.636l105.604-19.074c5.931-1.073 10.977-4.941 13.55-10.388 2.574-5.448 2.357-11.804-.583-17.063l-28.299-65.626L212.287 70.352c-3.247-2.427-4.905-3.711-8.9-3.711-1.104 0-2.212.099-3.316.297l-66.737 10.704c-11.989 2.061-17.178 16.759-19.136 22.429l-18.961 54.912C92.676 162.392 95.027 170.612 101.114 175.552zM403.2 280.568l-105.605 19.076 17.992-61.423 63.764-12.759L403.2 280.568zM198.854 81.558l169.611 126.764-58.681 10.601L144.868 91.309 198.854 81.558zM131.828 106.157l164.966 127.126-17.779 62.597L112.866 161.069 131.828 106.157z" clipRule="evenodd"></path><path fill="#efe047" fillRule="evenodd" d="M304.888,333.504l-0.408-0.336l-41.14,7.302l-38.346,7.461L56.062,207.13l40.91-7.961l-16.327-13.866l-36.397,6.746c-12.281,2.274-17.598,18.49-19.602,24.746L5.224,277.381c-2.622,8.178-0.216,17.247,6.02,22.697l170.192,148.743c7.822,6.698,13.084,12.682,34.467,8.426l108.174-21.048c6.074-1.181,11.244-5.452,13.881-11.46c2.636-6.013,2.413-13.024-0.598-18.827L304.888,333.504z M193.474,432.842L23.281,284.099l19.425-60.587l168.98,140.264L193.474,432.842z M212.507,436.996l18.428-67.772l59.51-11.575l30.237,58.3L212.507,436.996z" clipRule="evenodd"></path><polygon fill="#efe047" fillRule="evenodd" points="408.858 168.462 416.592 136.253 448.8 128.52 416.592 120.785 408.858 88.576 401.124 120.785 368.916 128.52 401.124 136.253" clipRule="evenodd"></polygon><polygon fill="#efe047" fillRule="evenodd" points="337.533 94.638 343.167 72.109 365.695 66.479 343.167 60.845 337.533 38.317 331.903 60.845 309.373 66.479 331.903 72.109" clipRule="evenodd"></polygon>
-
-        </svg>
-
-      );
-
+           case "gold":
+         return <svg {...props} viewBox="0 0 500 500" className={`${props.className} text-yellow-300`}>
+         <path fill="#efe047" fillRule="evenodd" d="M492.926 373.652l-29.862-56.448c-3.374-6.38-9.72-10.211-16.467-10.211-1.112 0-2.236.104-3.358.318l-58.772 11.211c-7.032 1.34-12.746 6.762-14.753 14.006l-18.202 65.62c-1.838 6.627-.296 13.787 4.077 18.922 3.612 4.242 8.73 6.603 14.03 6.603 1.115 0 2.236-.104 3.354-.316l106.837-20.379c5.998-1.144 11.102-5.278 13.707-11.096C496.118 386.06 495.899 379.271 492.926 373.652zM369.618 403.749l18.201-65.619 58.772-11.211 29.863 56.451L369.618 403.749zM101.114 175.552l166.149 134.811c7.635 6.071 12.772 11.493 33.646 7.636l105.604-19.074c5.931-1.073 10.977-4.941 13.55-10.388 2.574-5.448 2.357-11.804-.583-17.063l-28.299-65.626L212.287 70.352c-3.247-2.427-4.905-3.711-8.9-3.711-1.104 0-2.212.099-3.316.297l-66.737 10.704c-11.989 2.061-17.178 16.759-19.136 22.429l-18.961 54.912C92.676 162.392 95.027 170.612 101.114 175.552zM403.2 280.568l-105.605 19.076 17.992-61.423 63.764-12.759L403.2 280.568zM198.854 81.558l169.611 126.764-58.681 10.601L144.868 91.309 198.854 81.558zM131.828 106.157l164.966 127.126-17.779 62.597L112.866 161.069 131.828 106.157z" clipRule="evenodd"></path><path fill="#efe047" fillRule="evenodd" d="M304.888,333.504l-0.408-0.336l-41.14,7.302l-38.346,7.461L56.062,207.13l40.91-7.961l-16.327-13.866l-36.397,6.746c-12.281,2.274-17.598,18.49-19.602,24.746L5.224,277.381c-2.622,8.178-0.216,17.247,6.02,22.697l170.192,148.743c7.822,6.698,13.084,12.682,34.467,8.426l108.174-21.048c6.074-1.181,11.244-5.452,13.881-11.46c2.636-6.013,2.413-13.024-0.598-18.827L304.888,333.504z M193.474,432.842L23.281,284.099l19.425-60.587l168.98,140.264L193.474,432.842z M212.507,436.996l18.428-67.772l59.51-11.575l30.237,58.3L212.507,436.996z" clipRule="evenodd"></path><polygon fill="#efe047" fillRule="evenodd" points="408.858 168.462 416.592 136.253 448.8 128.52 416.592 120.785 408.858 88.576 401.124 120.785 368.916 128.52 401.124 136.253" clipRule="evenodd"></polygon><polygon fill="#efe047" fillRule="evenodd" points="337.533 94.638 343.167 72.109 365.695 66.479 343.167 60.845 337.533 38.317 331.903 60.845 309.373 66.479 331.903 72.109" clipRule="evenodd"></polygon>
+        </svg>;
     case "plat":
       return <svg {...props} viewBox="0 0 64 64" stroke="white" strokeWidth="0.5" className={`${props.className} text-indigo-400`}><polygon points="47.616 42.516 43.867 43.765 41.22 57 44.208 57 47.616 42.516"></polygon><polygon points="39.18 57 41.813 43.84 30.398 42.21 34.748 57 39.18 57"></polygon><polygon points="4.943 31 13.847 31 12.363 20.612 4.943 31"></polygon><polygon points="4.832 33 21.546 59 25.484 59 14.341 33 4.832 33"></polygon><path d="M31.721,53.793l-3.68-12.511a1,1,0,0,1,.216-.951l1.6-1.781L28.2,26.518,16.291,32.473,27.333,58.239Z"></path></svg>;
     case "diamond":
@@ -166,9 +161,7 @@ function getBadgeStyle(levelId: string) {
 function formatCurrency(amount: number | null | undefined): string {
   if (amount == null || isNaN(amount)) return "₺0";
   const abs = Math.round(amount);
-  return (
-    "₺" + abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-  );
+  return "₺" + abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 function formatNumber(amount: number | null | undefined): string {
@@ -213,8 +206,8 @@ export default function MembersClient() {
 
   const totalVipMembers = useMemo(() => total, [total]);
 
-  // Sıralama değişimi
-  const handleSortChange = (column: 'deposit' | 'created' | 'loss_total' | 'bonus_cash' | 'loss_count') => {
+  // Sıralama değişimi (CREATED KALDIRILDI, USERNAME EKLENDİ)
+  const handleSortChange = (column: 'deposit' | 'username' | 'loss_total' | 'bonus_cash' | 'loss_count') => {
     const currentSortPrefix = `${column}_`;
     const isCurrentColumn = sort.startsWith(currentSortPrefix);
     const currentDirection = sort.endsWith('_desc') ? 'desc' : 'asc';
@@ -224,14 +217,16 @@ export default function MembersClient() {
       const newDirection = currentDirection === 'desc' ? 'asc' : 'desc';
       newSort = `${column}_${newDirection}` as SortOption;
     } else {
-      newSort = `${column}_desc` as SortOption;
+      // Varsayılan yönler
+      if (column === 'username') newSort = `${column}_asc` as SortOption; // A-Z
+      else newSort = `${column}_desc` as SortOption; // Sayısal alanlar yüksek-düşük
     }
     setSort(newSort);
     setPage(1);
   };
 
-  // Sıralama İkonu
-  const getSortIcon = (column: 'deposit' | 'created' | 'loss_total' | 'bonus_cash' | 'loss_count') => {
+  // Sıralama İkonu (CREATED KALDIRILDI)
+  const getSortIcon = (column: 'deposit' | 'username' | 'loss_total' | 'bonus_cash' | 'loss_count') => {
     const sortPrefix = `${column}_`;
     if (sort.startsWith(sortPrefix)) {
       const direction = sort.endsWith('_asc') ? 'asc' : 'desc';
@@ -331,24 +326,53 @@ export default function MembersClient() {
            return;
         }
 
-        // Frontend Sıralama
+        // --- GÜNCELLENMİŞ FRONTEND SIRALAMA ---
+        // (Tüm sayısal alanlar ve kullanıcı adı eklendi)
         let sortedItems = json.items ?? [];
-        if (['loss_total', 'bonus_cash', 'loss_count'].some(col => sort.includes(col))) {
+        
+        const sortableColumns = ['deposit', 'loss_total', 'bonus_cash', 'loss_count', 'username'];
+
+        if (sortableColumns.some(col => sort.includes(col))) {
             const [column, direction] = sort.split('_');
             const isDesc = direction === 'desc';
 
             sortedItems.sort((a, b) => {
-                let valA, valB;
+                let valA: number | string = 0;
+                let valB: number | string = 0;
+
                 switch (column) {
-                    case 'loss_total': valA = a.lossTotal; valB = b.lossTotal; break;
-                    case 'bonus_cash': valA = a.lossBonusCash; valB = b.lossBonusCash; break;
-                    case 'loss_count': valA = a.lossBonusCount; valB = b.lossBonusCount; break;
-                    default: return 0;
+                    case 'deposit': 
+                        valA = a.deposit90d; 
+                        valB = b.deposit90d; 
+                        break;
+                    case 'loss_total': 
+                        valA = a.lossTotal; 
+                        valB = b.lossTotal; 
+                        break;
+                    case 'bonus_cash': 
+                        valA = a.lossBonusCash; 
+                        valB = b.lossBonusCash; 
+                        break;
+                    case 'loss_count': 
+                        valA = a.lossBonusCount; 
+                        valB = b.lossBonusCount; 
+                        break;
+                    case 'username':
+                        // String karşılaştırma
+                        return isDesc 
+                            ? b.username.localeCompare(a.username) 
+                            : a.username.localeCompare(b.username);
+                    default: 
+                        return 0;
                 }
+
                 if (valA === valB) return 0;
+                // Sayısal karşılaştırma
                 return isDesc ? (valA < valB ? 1 : -1) : (valA > valB ? 1 : -1);
             });
         }
+        // ------------------------------------
+
         setItems(sortedItems);
         setTotal(json.total ?? 0);
         setTotalPages(json.totalPages ?? 1);
@@ -436,7 +460,6 @@ export default function MembersClient() {
       </header>
 
       {/* --- KONTROL PANELİ (FİLTRELER) --- */}
-      {/* Kasmayı engellemek için bg-slate-900/60 yerine düz renk verildi */}
       <section className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
         
         {/* Satır 1: Ana Aramalar */}
@@ -554,16 +577,26 @@ export default function MembersClient() {
       </section>
 
       {/* --- TABLO --- */}
-      {/* Kasma sorunu için backdrop-blur kaldırıldı, border ile derinlik verildi */}
       <section className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="bg-slate-950 border-b border-slate-800 text-xs uppercase tracking-wider text-slate-500">
-                <th className="px-6 py-4 text-left font-semibold">Kullanıcı</th>
+                {/* Kullanıcı Adı Sıralaması */}
+                <th 
+                  className="px-6 py-4 text-left font-semibold cursor-pointer group hover:text-emerald-400 transition-colors"
+                  onClick={() => handleSortChange('username')}
+                >
+                   <div className="flex items-center">
+                      Kullanıcı
+                      {getSortIcon('username')}
+                   </div>
+                </th>
+
                 <th className="px-6 py-4 text-left font-semibold">ID</th>
                 <th className="px-6 py-4 text-left font-semibold">Seviye</th>
                 
+                {/* Sayısal Sıralamalar */}
                 {[
                   { key: 'deposit', label: '90 Gün Yatırım', align: 'right' },
                   { key: 'loss_count', label: 'Talep', align: 'right' },
@@ -583,16 +616,7 @@ export default function MembersClient() {
                 ))}
 
                 <th className="px-6 py-4 text-right font-semibold">Freebet / Spin</th>
-                
-                <th 
-                  className="px-6 py-4 text-left font-semibold cursor-pointer group hover:text-emerald-400 transition-colors"
-                  onClick={() => handleSortChange('created')}
-                >
-                   <div className="flex items-center">
-                      Kayıt
-                      {getSortIcon('created')}
-                   </div>
-                </th>
+                <th className="px-6 py-4 text-left font-semibold">Kayıt Tarihi</th> {/* Sıralama kaldırıldı */}
                 <th className="px-6 py-4 text-right font-semibold">Detay</th>
               </tr>
             </thead>
