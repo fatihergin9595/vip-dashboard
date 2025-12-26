@@ -1,15 +1,7 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Turbopack prod'da external module hatası çıkarabildiği için kapatıyoruz
-  experimental: {
-    turbo: {
-      // prod build'te turbo kullanma
-      enabled: false,
-    },
-  },
+import type { NextConfig } from "next";
 
-  // Netlify / serverless tarafında pg gibi node modüllerini düzgün paketlesin diye
-  outputFileTracing: true,
+const nextConfig: NextConfig = {
+  /* config options here */
 };
 
-module.exports = nextConfig;
+export default nextConfig;
