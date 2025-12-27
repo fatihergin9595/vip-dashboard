@@ -14,7 +14,7 @@ function isValidAdminCookie(req: NextRequest) {
 }
 
 function isValidBotToken(req: NextRequest) {
-  const token = process.env.BOT_API_TOKEN;
+  const token = process.env.PANEL_BOT_API_TOKEN;
   if (!token) return false;
 
   const auth = req.headers.get("authorization") || "";
